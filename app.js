@@ -1,10 +1,4 @@
-const app = document.querySelector('#app');
-const answer = { styles: [], duels: {}, rant: '', publishRant: false, surveyVersion: 3, submissionId: crypto.randomUUID() };
-let duelRound = 0;
-let step = -1;
-let busy = false;
-const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
+const schema={"single": {"frequency": ["Every day", "A few times a week", "Special occasions", "Rarely / never"], "irritation": ["Often", "Sometimes", "Never", "Not sure"], "impact": ["Frequently", "Occasionally", "Once or twice", "Never", "I rarely wear earrings"], "finish": ["Gold tones", "Silver tones", "Both, please", "No preference"], "sampleInterest": ["Yes", "Maybe", "No"]}, "multi": {"symptoms": {"min": 1, "max": 7, "options": ["Itching", "Redness", "Swelling", "Soreness", "Heaviness / pulling", "Something else", "Not sure"], "exclusive": ["Not sure"]}, "workarounds": {"min": 1, "max": 3, "options": ["Wear particular materials", "Wear earrings for shorter periods", "Avoid certain pairs", "Stop wearing earrings", "Nothing / no workaround needed", "Something else"], "exclusive": ["Nothing / no workaround needed"]}, "styles": {"min": 1, "max": 3, "options": ["Everyday minimalist", "Soft & romantic", "Main character", "Desi at heart", "Playfully different", "Classic pearls"]}, "priorities": {"min": 1, "max": 2, "options": ["Lightweight feel", "Appearance", "Ear-contact material", "Secure backs", "Durability", "Affordability"]}, "needToKnow": {"min": 1, "max": 4, "options": ["Exactly which parts are titanium", "Design options", "Price", "How securely it is made", "Other people’s experiences", "Nothing else", "Not interested"], "exclusive": ["Nothing else", "Not interested"]}}, "purchaseModes": ["", "amount", "Don’t remember", "Bought a set", "Haven’t bought earrings"]};
 // Original vector illustrations keep the style choices fast and available offline.
 function jewellery(type, hero = false) {
   const defs = '<defs><linearGradient id="gold"><stop stop-color="#a26c31"/><stop offset=".38" stop-color="#ebc982"/><stop offset=".67" stop-color="#b18540"/><stop offset="1" stop-color="#f1d598"/></linearGradient><radialGradient id="pearl"><stop stop-color="#fffdf5"/><stop offset=".75" stop-color="#eee4d3"/><stop offset="1" stop-color="#c9baa4"/></radialGradient></defs>';
@@ -20,163 +14,42 @@ function jewellery(type, hero = false) {
   return `<svg viewBox="0 0 175 135" aria-hidden="true">${defs}${art}</svg>`;
 }
 
-function home() {
-  app.innerHTML = `<section class="hero fade-in"><div class="hero-copy"><div class="eyebrow"><span class="dot"></span>FOR THE GIRLS, BY THE GIRLS</div><h1>Cute earrings.<br>Comfy ears.<br><em>Your call.</em></h1><p>You have opinions. We have a little idea.<br>Help us dream up earrings you’d actually love to wear — without the earring drama.</p><button class="primary" id="start">Let’s talk earrings <span>↗</span></button><div class="fine"><span>About 2–3 minutes</span><span>Anonymous</span><span>Zero boring questions</span></div></div><div class="hero-art" aria-label="Illustration of gold drop earrings on a jewellery card"><div class="art-card"><span class="tape"></span>${jewellery(2,true)}<span class="card-brand">a little everyday lovely.</span></div><div class="art-label"><small>YOUR EARS.</small>Your rules.</div><div class="art-spark">✳</div><div class="scribble">a good pair changes everything<span>⤴</span></div></div></section><section class="intro-strip" aria-label="What to expect"><p>A little give & take.</p><div class="strip-item"><span class="strip-num">01</span><div><b>Pick your pretty</b><small>Tell us what catches your eye.</small></div></div><div class="strip-item"><span class="strip-num">02</span><div><b>Keep it real</b><small>Comfort, budgets, the whole thing.</small></div></div><div class="strip-item"><span class="strip-num">03</span><div><b>Let it all out</b><small>Your earring rants are welcome.</small></div></div></section><p class="bottom-note">Not a shop. Not a sales pitch. Just the beginning of something cute.</p>`;
-  document.querySelector('#start').onclick = () => { step = 0; render(); };
+
+const app=document.querySelector('#app');
+const answer={surveyVersion:4,submissionId:crypto.randomUUID(),symptoms:[],workarounds:[],styles:[],priorities:[],needToKnow:[],lastPurchaseMode:'',lastPaid:null,unresolved:'',rant:'',publishRant:false};
+let step=-1,busy=false;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const styles=[['Everyday minimalist','Small hoops, everyday energy.'],['Soft & romantic','Bows, florals & a little daydream.'],['Main character','Let the earrings do the talking.'],['Desi at heart','Jhumkas have entered the chat.'],['Playfully different','Colour, shape & something unexpected.'],['Classic pearls','Quietly timeless. Always invited.']];
+const screens=[['YOUR EVERYDAY','Let’s start with your ears.','Your experience comes first. No diagnosed allergy needed.'],['WHAT YOU DO NOW','How do you make earrings work for you?','Tell us what you actually do, not what you think we want to hear.'],['THE IDEA WE’RE TESTING','Pretty on the outside. Thoughtful at the piercing.','Here’s the early idea. Your answers will help us decide what to make first.'],['YOUR DESIGN EDIT','Help us choose the first few pairs.','Pick the looks you would actually reach for, and the details that matter.'],['BEFORE YOU’D TRY IT','What would you need to know?','An honest “maybe” or “no” is useful too.'],['YOUR EARS HAVE THE FLOOR','What should your ideal pair finally get right?','Rant, suggest, or skip. We’re listening.']];
+function home(){app.innerHTML=`<section class="hero fade-in"><div class="hero-copy"><span class="eyebrow"><span class="dot"></span>HELP SHAPE OUR FIRST EARRINGS</span><h1>Cute earrings.<br>Thoughtful details.<br><em>Your say.</em></h1><p>We’re exploring cute, affordable earrings with <strong>titanium posts or hooks</strong>—the parts that pass through your ears. Help us choose the designs and details worth making.</p><p id="collection-status" class="collection-note" role="status"></p><button class="primary" id="start">Help shape the first pairs <span>↗</span></button><div class="fine"><span>About 2–3 minutes</span><span>Anonymous survey</span><span>No purchase needed</span></div></div><div class="hero-art"><div class="art-card"><span class="tape"></span>${jewellery(2,true)}<span class="card-brand">a little everyday lovely.</span></div><div class="art-label"><small>YOUR EARS.</small>Your rules.</div><div class="art-spark">✳</div></div></section><section class="intro-strip"><p>Your input → our first samples.</p><div class="strip-item"><span class="strip-num">01</span><div><b>Your experience</b><small>What works. What doesn’t.</small></div></div><div class="strip-item"><span class="strip-num">02</span><div><b>Our early idea</b><small>Titanium where the post or hook goes.</small></div></div><div class="strip-item"><span class="strip-num">03</span><div><b>Your first-pair wishlist</b><small>Help us pick the details.</small></div></div></section><p class="bottom-note">We’re testing an idea, not selling a finished collection.</p>`;document.querySelector('#start').onclick=()=>{step=0;render();};checkCollection();}
+function one(key){return `<div class="research-options" role="group" aria-label="${key}">${schema.single[key].map(v=>`<button data-one="${key}" data-value="${esc(v)}" aria-pressed="${answer[key]===v}" class="${answer[key]===v?'selected':''}">${v}<span aria-hidden="true">${answer[key]===v?'✓':'○'}</span></button>`).join('')}</div>`;}
+function multi(key){return `<div class="research-options" role="group" aria-label="${key}">${schema.multi[key].options.map(v=>`<button data-multi="${key}" data-value="${esc(v)}" aria-pressed="${answer[key].includes(v)}" class="${answer[key].includes(v)?'selected':''}">${v}<span aria-hidden="true">${answer[key].includes(v)?'✓':'+'}</span></button>`).join('')}</div>`;}
+const question=(title,body,note='')=>`<section class="research-question"><h2>${title}</h2>${note?`<p class="question-help">${note}</p>`:''}${body}</section>`;
+function wallMarkup(){return `<section class="community-wall" aria-labelledby="wall-title"><span class="eyebrow">YOU’RE IN GOOD COMPANY</span><h2 id="wall-title">The girls have stories.</h2><p>Shared anonymously, with permission. You’ve already sent your own answers.</p><div id="community-rants" role="status">Loading stories…</div><button class="secondary" id="refresh-wall">Refresh stories ↻</button></section>`;}
+function render(){
+ const [tag,title,desc]=screens[step];let body='';
+ if(step===0){body=question('How often do you wear earrings?',one('frequency'))+question('How often do your ears feel irritated during or after wear?',one('irritation'),'Think itching, redness, swelling or soreness. “Never” and “Not sure” are welcome.')+question('Have you stopped wearing a pair because of how your ears felt?',one('impact'));if(answer.irritation&&answer.irritation!=='Never')body+=question('What have you noticed?',multi('symptoms'),'Choose what applies. Heaviness or pulling is a separate fit/weight issue; these answers don’t establish an allergy.');}
+ if(step===1){body=question('What do you currently do?',multi('workarounds'),'Choose up to 3. If you don’t need a workaround, say so.')+question('What still feels frustrating? · optional',`<textarea aria-label="What still feels frustrating? Optional" id="unresolved" maxlength="400" placeholder="Finding cute options? Heavy pairs? Backs that disappear?">${esc(answer.unresolved)}</textarea>`)+question('Think of the last pair you bought. What did you actually pay? · optional',`<p class="question-help">A spending reference, not a question about what you would pay for our idea. Skip if you don’t remember or bought a set.</p><label class="field-label" for="last-paid">Amount paid in ₹ for one pair</label><input class="research-input" id="last-paid" type="number" min="0" max="100000" step="0.01" inputmode="decimal" placeholder="Amount, if you remember" value="${answer.lastPurchaseMode==='amount'?esc(answer.lastPaid):''}"><div class="budget-picks">${schema.purchaseModes.filter(v=>v&&v!=='amount').map(v=>`<button data-purchase="${esc(v)}" class="${answer.lastPurchaseMode===v?'selected':''}" aria-pressed="${answer.lastPurchaseMode===v}">${v}</button>`).join('')}<button data-purchase="" aria-pressed="${!answer.lastPurchaseMode}">Skip this</button></div>`);}
+ if(step===2){body=`<div class="titanium-diagram"><svg viewBox="0 0 650 220" role="img" aria-label="Earring diagram: decorative front remains a separate material; the post passing through the piercing is the part we aim to replace with titanium."><circle cx="135" cy="110" r="54" fill="#c68e9c" stroke="#842e46" stroke-width="3"/><path d="M190 110H480" stroke="#879397" stroke-width="14" stroke-linecap="round"/><path d="M335 55v38m-7-8 7 9 7-9" stroke="#48202f" fill="none" stroke-width="2"/><text x="240" y="35" fill="#48202f" font-size="18">Post: planned titanium part</text><text x="65" y="195" fill="#48202f" font-size="16">Decorative front</text></svg><div><h2>The first experiment</h2><p>Take attractive designs and test replacing their <strong>posts or hooks with titanium</strong>. These are the parts that pass through the piercing.</p><p><strong>This does not mean the whole earring is titanium.</strong> Decorative parts and backs may be other materials and may touch skin. We’ll need to verify materials and how securely the parts fit before offering samples.</p><p>We’re still testing designs, costs and feasibility. Titanium doesn’t guarantee that every wearer will avoid irritation.</p></div></div><p class="concept-footnote">No finished collection or selling price yet. Your feedback will help us decide what to prototype.</p>`;}
+ if(step===3){body=question('Which styles would you actually wear?',`<div class="cards">${styles.map(([label,sub],i)=>`<button class="choice ${answer.styles.includes(label)?'selected':''}" data-multi="styles" data-value="${esc(label)}" aria-pressed="${answer.styles.includes(label)}"><span class="illustration">${jewellery(i)}</span><span class="choice-copy"><b>${label}</b><small>${sub}</small></span><span class="check">${answer.styles.includes(label)?'✓':''}</span></button>`).join('')}</div>`,'Pick up to 3. Illustrations show styles, not confirmed products.')+question('Which finish do you reach for?',one('finish'))+`<section class="priority-panel"><span class="eyebrow">THE DETAILS THAT MATTER</span><h2>What should the first pairs get right?</h2><p>Choose your top two priorities, or just one if it stands out.</p>${multi('priorities')}</section>`;}
+ if(step===4){body=question('Before considering a pair, what would you need to know?',multi('needToKnow'),'Choose up to 4, or tell us you’re not interested.')+question('Would you like to see the first samples?',one('sampleInterest'),'This is interest in seeing samples—not an order, sale or promise to buy.');}
+ if(step===5){body=`<label class="field-label" for="rant">Your story or suggestion · optional</label><textarea id="rant" maxlength="2000" placeholder="Dear earrings, here’s what I wish you’d get right…">${esc(answer.rant)}</textarea><div class="text-meta"><span>No names, contact details, or anyone else’s private information.</span><span id="char-count">${answer.rant.length} / 2,000</span></div><label class="share-rant"><input type="checkbox" id="publish-rant" ${answer.publishRant?'checked':''}><span><strong>Share this story anonymously on the rant wall</strong><small>Optional. Otherwise, only the project owner can read it. You’ll see shared stories after submitting.</small></span></label><details class="answer-review"><summary>Review your edit before sending</summary>${[['Wearing habits',answer.frequency],['Irritation',answer.irritation],['Stopped wearing pairs',answer.impact],['Current approach',answer.workarounds.join(', ')],['Styles',answer.styles.join(', ')],['Finish',answer.finish],['Priorities',answer.priorities.join(', ')],['Need to know',answer.needToKnow.join(', ')],['See samples',answer.sampleInterest],['Last purchase',answer.lastPurchaseMode==='amount'?'₹'+answer.lastPaid:answer.lastPurchaseMode||'Skipped']].map(([label,value])=>`<div class="review-row"><span>${label}</span><b>${esc(value)}</b></div>`).join('')}</details><p class="text-meta">Sending saves your anonymous answers for the founders to plan the first products. No purchase or contact signup is required.</p>`;}
+ app.innerHTML=`<section class="survey fade-in"><div class="progress-info"><span>HELP SHAPE THE FIRST PAIRS</span><span>${step+1} / ${screens.length}</span></div><div class="progress" aria-label="Step ${step+1} of ${screens.length}">${screens.map((_,i)=>`<i class="${i<=step?'done':''}"></i>`).join('')}</div><div class="question-heading"><div><span class="eyebrow">${tag}</span><h1 tabindex="-1" id="question-title">${title}</h1><p>${desc}</p></div><span class="question-flower" aria-hidden="true">✳</span></div>${body}<p id="error" class="error" role="alert"></p><div class="question-footer"><button class="back" id="back">← Back</button><button class="primary" id="next">${step===5?'Send my edit':'Keep going'} <span>${step===5?'♡':'→'}</span></button></div></section>`;
+ document.querySelectorAll('[data-one]').forEach(b=>b.onclick=()=>{answer[b.dataset.one]=b.dataset.value;if(b.dataset.one==='irritation'&&b.dataset.value==='Never')answer.symptoms=[];render();focusChoice(b);});
+ document.querySelectorAll('[data-multi]').forEach(b=>b.onclick=()=>{const key=b.dataset.multi,value=b.dataset.value,rule=schema.multi[key];if(answer[key].includes(value))answer[key]=answer[key].filter(v=>v!==value);else{if(rule.exclusive?.includes(value))answer[key]=[];else answer[key]=answer[key].filter(v=>!rule.exclusive?.includes(v));if(answer[key].length>=rule.max){document.querySelector('#error').textContent=`Choose up to ${rule.max}. Unpick one to make room.`;return;}answer[key].push(value);}render();focusChoice(b);});
+ document.querySelectorAll('[data-purchase]').forEach(b=>b.onclick=()=>{answer.lastPurchaseMode=b.dataset.purchase;answer.lastPaid=null;render();});
+ document.querySelector('#last-paid')?.addEventListener('input',e=>{answer.lastPurchaseMode=e.target.value?'amount':'';answer.lastPaid=e.target.value?Number(e.target.value):null;document.querySelectorAll('[data-purchase]').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-pressed','false');});});
+ document.querySelector('#unresolved')?.addEventListener('input',e=>answer.unresolved=e.target.value);
+ document.querySelector('#rant')?.addEventListener('input',e=>{answer.rant=e.target.value;document.querySelector('#char-count').textContent=`${answer.rant.length} / 2,000`;});
+ document.querySelector('#publish-rant')?.addEventListener('change',e=>answer.publishRant=e.target.checked);
+ document.querySelector('#back').onclick=()=>{if(busy)return;step--;step<0?home():render();window.scrollTo(0,0);};
+ document.querySelector('#next').onclick=next;
 }
+function focusChoice(old){[...document.querySelectorAll('[data-value]')].find(b=>b.dataset.value===old.dataset.value)?.focus({preventScroll:true});}
+function validateStep(){const requireOne=k=>!!answer[k];const requireMulti=k=>answer[k].length>=schema.multi[k].min;if(step===0&&(!['frequency','irritation','impact'].every(requireOne)||(answer.irritation!=='Never'&&!requireMulti('symptoms'))))return 'Choose your wearing habits, irritation frequency and whether you’ve stopped wearing a pair. If shown, pick the symptoms you noticed.';if(step===1&&(!requireMulti('workarounds')||(answer.lastPurchaseMode==='amount'&&(!Number.isFinite(answer.lastPaid)||answer.lastPaid<0||answer.lastPaid>100000))))return 'Pick your current approach. If you enter a past purchase amount, use a valid amount in rupees, or skip it.';if(step===3&&(!requireMulti('styles')||!answer.finish||!requireMulti('priorities')))return 'Pick at least one style, a finish, and one or two priorities.';if(step===4&&(!requireMulti('needToKnow')||!answer.sampleInterest))return 'Tell us what you need to know and whether you want to see samples.';return '';}
+async function next(){if(busy)return;const error=validateStep();if(error){document.querySelector('#error').textContent=error;return;}if(step<5){step++;render();window.scrollTo(0,0);document.querySelector('#question-title').focus({preventScroll:true});return;}busy=true;const button=document.querySelector('#next');button.disabled=true;button.textContent='Saving your edit…';try{const r=await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(answer)});const result=await r.json();if(!r.ok||!result.saved)throw new Error(result.error||'Could not save. Please try again.');success();}catch(e){document.querySelector('#error').textContent=e.message==='Failed to fetch'?'Couldn’t connect. Your answers are still here—please try again.':e.message;button.disabled=false;button.innerHTML='Try sending again <span>♡</span>';}finally{busy=false;}}
+async function loadCommunityRants(){const wall=document.querySelector('#community-rants'),button=document.querySelector('#refresh-wall');if(!wall)return;button.disabled=true;try{const r=await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/rants');if(!r.ok)throw new Error();const stories=await r.json();if(wall.isConnected)wall.innerHTML=stories.length?stories.map(s=>`<article class="public-rant"><span aria-hidden="true">“</span><p>${esc(s.rant)}</p><small>Anonymous earring girl</small></article>`).join(''):'<p class="wall-empty">No shared stories yet. Your input is already helping shape the first pairs.</p>';}catch{if(wall.isConnected)wall.textContent='Stories couldn’t load right now. Your survey answers have still been saved.';}finally{if(button.isConnected)button.disabled=false;}}
+function success(){const index=Math.max(0,styles.findIndex(s=>s[0]===answer.styles[0]));const messages={Yes:'A first-look girl. We’d love to show you what your feedback helps shape.',Maybe:'A “show me first” girl. Fair. The samples will need to earn their place.',No:'Thanks for keeping it honest. Your experience still helps us make better decisions.'};app.innerHTML=`<section class="success research-success fade-in"><div class="success-icon">✳</div><span class="eyebrow">YOUR EDIT IS SAVED</span><h1>Real opinions.<br><em>Better first pairs.</em></h1><p>${messages[answer.sampleInterest]}</p><div class="result-card"><div class="result-art">${jewellery(index)}</div><div><span class="eyebrow">YOUR DESIGN NOTES</span><b>${esc(answer.styles.join(' + '))}</b><small>${esc(answer.priorities.join(' + '))} matter most.</small></div></div><section class="signup-panel"><h2>Want a first look? · optional</h2><p>Leave an email for sample or launch updates. This separate signup is not linked to your anonymous survey answers.</p><form id="signup-form"><label class="field-label" for="signup-email">Your email</label><input class="research-input" id="signup-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"><label class="share-rant"><input id="signup-consent" type="checkbox" required><span>I agree to receive sample or launch updates by email.</span></label><button class="secondary" type="submit">Keep me posted ↗</button><p id="signup-status" role="status"></p></form></section>${wallMarkup()}<a class="secondary" href="./">Back to the beginning ↗</a></section>`;window.scrollTo(0,0);loadCommunityRants();document.querySelector('#refresh-wall').onclick=loadCommunityRants;document.querySelector('#signup-form').onsubmit=async e=>{e.preventDefault();const status=document.querySelector('#signup-status'),button=e.target.querySelector('button');button.disabled=true;status.textContent='Saving signup…';try{const r=await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#signup-email').value,consent:document.querySelector('#signup-consent').checked})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not save signup.');status.textContent='You’re on the first-look list. Thank you!';e.target.reset();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}};}
+const privacy=document.querySelector('#privacy-dialog');document.querySelector('#privacy').onclick=()=>privacy.showModal();privacy.querySelectorAll('.close,.close-button').forEach(b=>b.onclick=()=>privacy.close());home();
 
-const styles = [
-  ['Everyday minimalist', 'Tiny hoops. Big repeat-wear energy.'],
-  ['Soft & romantic', 'Bows, florals & a little daydream.'],
-  ['Main character', 'The outfit starts with the earrings.'],
-  ['Desi at heart', 'Jhumkas have entered the chat.'],
-  ['Playfully different', 'A little colour. A little unexpected.'],
-  ['Classic pearls', 'Quietly timeless. Always invited.']
-];
-const duels = [
-  {id:'everyday', prompt:'An ordinary Tuesday. Which pair are you reaching for?', picks:[0,5]},
-  {id:'going-out', prompt:'Plans with the girls. What’s coming with you?', picks:[1,2]},
-  {id:'dress-up', prompt:'A little extra today. Which one feels more you?', picks:[3,4]}
-];
-const budgets = ['Under ₹150','₹150–249','₹250–399','₹400–599','₹600+'];
-const questions = [
-  {tag:'THE EVERYDAY EDIT', title:'First, what’s your earring situation?', desc:'From lecture halls to late-night plans. Pick the one that feels most like you.', key:'frequency', options:['Every day','A few times a week','Special occasions','Rarely / never'], icons:['01','02','03','04']},
-  {tag:'YOUR EARS & EARRINGS', title:'Do your ears react after wearing earrings?', desc:'Think itching, redness, swelling, or soreness during or after wear. How often does this happen to you? You don’t need a diagnosed allergy to answer.', key:'irritation', options:['Often','Sometimes','Never','Not sure'], icons:['!','~','♡','?']},
-  {tag:'THE MOOD BOARD', title:'What’s your kind of pretty?', desc:'Choose up to 3 styles. Because one aesthetic is never enough.', key:'styles'},
-  {tag:'THIS OR THAT', title:'Two pairs. One instinct.', desc:'A tiny style game. Pick a favourite in each round — or call it a tie.', key:'duels'},
-  {tag:'THE LITTLE DETAILS', title:'Let’s find your golden middle.', desc:'Your favourite finish and what matters most when you choose a pair.', key:'finish', options:['Gold tones','Silver tones','Both, please','No preference'], icons:['☀','☾','✳','~']},
-  {tag:'THE REAL-LIFE BUDGET', title:'Cute, but at what price?', desc:'For a pair you love with verified titanium ear-contact parts, what would you realistically consider spending?', key:'budget', options:['Under ₹150','₹150–249','₹250–399','₹400–599','₹600+','Not sure yet'], icons:['01','02','03','04','05','?']},
-  {tag:'THE POSSIBILITY', title:'Would this be your thing?', desc:'We’re exploring pretty fashion earrings with verified titanium posts or hooks and appropriate backs.', key:'interest', options:['Very interested','Maybe, show me samples','Not interested right now'], icons:['♡','↗','~']},
-  {tag:'THE RANT CORNER', title:'Dear earrings, we need to talk.', desc:'The pair that broke on day two. The backs that disappeared. The “hypoallergenic” promise that let you down. You have the floor.', key:'rant'},
-  {tag:'THE FINAL LOOK', title:'One last look, then you’re done.', desc:'Here’s your edit. You can go back to change anything before sending it.', key:'review'}
-];
-
-function option(value, key, icon) {
-  const selected = answer[key] === value;
-  return `<button class="choice ${selected?'selected':''}" type="button" data-key="${key}" data-value="${esc(value)}" aria-pressed="${selected}"><span class="option-icon">${icon}</span><span>${esc(value)}</span><span class="check">${selected?'✓':''}</span></button>`;
-}
-
-function render() {
-  const q = questions[step];
-  let body = '';
-  if (q.key === 'duels') {
-    const round = duels[duelRound];
-    const selected = answer.duels[round.id];
-    body = `<div class="duel-rounds" aria-label="Comparison rounds">${duels.map((r,i)=>`<button data-round="${i}" class="${i===duelRound?'current':''}" aria-label="Round ${i+1}${answer.duels[r.id]?', answered':''}" aria-current="${i===duelRound?'step':'false'}">${answer.duels[r.id]?'✓':i+1}</button>`).join('')}<span>Round ${duelRound+1} of ${duels.length}</span></div><h2 class="duel-prompt">${round.prompt}</h2><div class="duel-cards">${round.picks.map(i=>`<button class="duel-card ${selected===styles[i][0]?'selected':''}" data-duel="${styles[i][0]}" aria-pressed="${selected===styles[i][0]}"><span class="illustration">${jewellery(i)}</span><span class="duel-label">${styles[i][0]} <span>${selected===styles[i][0]?'♡':'↗'}</span></span></button>`).join('')}<span class="duel-or" aria-hidden="true">or</span></div><div class="duel-bottom"><button class="secondary ${selected==='Tie'?'tie-selected':''}" data-duel="Tie" aria-pressed="${selected==='Tie'}">Can’t choose · it’s a tie ${selected==='Tie'?'✓':''}</button><span id="duel-feedback" role="status">${selected?'Noted. Your taste, your rules.':'Go with your first instinct.'}</span></div>${duelRound<duels.length-1?'<button class="secondary next-round" id="next-round">Next pairing →</button>':''}<p class="text-meta">Style illustrations, not final products. These choices help us understand what you would actually wear.</p>`;
-  } else if (q.key === 'budget') {
-    const chosen = answer.budget;
-    const styleIndex = Math.max(0, styles.findIndex(s=>s[0]===answer.styles[0]));
-    body = `<div class="price-studio"><div class="price-illustration">${jewellery(styleIndex)}<span class="eyebrow">YOUR KIND OF PRETTY</span><small>Style reference · not an item for sale</small></div><div class="price-controls"><span class="eyebrow">WRITE YOUR OWN PRICE TAG</span><div class="price-ticket ${chosen?'revealed':''}" aria-live="polite"><small>YOUR COMFORT ZONE / PAIR</small><strong id="price-reveal">${chosen?esc(chosen):'You set the tag.'}</strong><span id="price-caption">${chosen?'Noted. This helps us plan, not set a final price.':'Slide below or tap a range to reveal your tag.'}</span></div><label for="budget-slider" class="field-label">Slide to a price you’d consider</label><input id="budget-slider" class="budget-slider" type="range" min="0" max="4" step="1" value="${Math.max(0,budgets.indexOf(chosen))}" aria-valuetext="${chosen&&chosen!=='Not sure yet'?esc(chosen):'No budget selected yet'}"><div class="price-scale"><span>Under ₹150</span><span>₹600+</span></div><div class="budget-picks" role="group" aria-label="Choose a budget">${[...budgets,'Not sure yet'].map(v=>`<button data-key="budget" data-value="${v}" aria-pressed="${chosen===v}" class="${chosen===v?'selected':''}">${v}</button>`).join('')}</div></div></div>`;
-  } else if (q.key === 'styles') {
-    body = `<div class="cards">${styles.map(([label,desc], i) => { const selected = answer.styles.includes(label); return `<button class="choice ${selected?'selected':''}" data-style="${esc(label)}" aria-pressed="${selected}"><span class="illustration">${jewellery(i)}</span><span class="choice-copy"><b>${label}</b><small>${desc}</small></span><span class="check">${selected?'✓':''}</span></button>`; }).join('')}</div><p class="text-meta"><span>Illustrations show a style, not a specific product.</span><span id="style-count">${answer.styles.length} / 3 picked</span></p>`;
-  } else if (q.key === 'rant') {
-    body = `<label class="field-label" for="rant">Your earring story · optional</label><textarea id="rant" maxlength="2000" placeholder="Okay, so there was this one pair…">${esc(answer.rant)}</textarea><div class="text-meta"><span>Keep it anonymous: no names or personal details, please.</span><span id="char-count">${answer.rant.length} / 2,000</span></div><label class="share-rant"><input type="checkbox" id="publish-rant" ${answer.publishRant?'checked':''}><span><strong>Share my rant anonymously on this wall</strong><small>Optional. Everyone taking the survey can read it after you send your edit. Leave unchecked to share only with the project owner.</small></span></label><section class="community-wall" aria-labelledby="wall-title"><span class="eyebrow">YOU’RE IN GOOD COMPANY</span><h2 id="wall-title">The girls have stories.</h2><p>Real earring rants, shared anonymously by other respondents.</p><div id="community-rants" role="status">Loading the rant wall…</div><button class="secondary" id="refresh-wall" type="button">Refresh stories ↻</button></section>`;
-  } else if (q.key === 'review') {
-    const rows = [['How often',answer.frequency],['Ear irritation',answer.irritation],['Your styles',answer.styles.join(', ')],...duels.map((r,i)=>['Style round '+(i+1),answer.duels[r.id]]),['Finish',answer.finish],['Top priority',answer.priority],['Budget / pair',answer.budget],['Interest',answer.interest],['Your rant',answer.rant || 'Skipped — all good.'],['Rant visibility',answer.rant&&answer.publishRant?'Shared anonymously on the wall':'Only the project owner']];
-    body = `<div class="review-list">${rows.map(([label,value])=>`<div class="review-row ${label==='Your rant'?'rant-preview':''}"><span>${label}</span><b>${esc(value)}</b></div>`).join('')}</div><p class="text-meta">By sending, you agree that the project owner may save and use these anonymous answers to plan the collection. This is research, not an order or a purchase commitment.</p>`;
-  } else {
-    if (q.key === 'interest') body += `<div class="concept">Your style on the outside. Thoughtful materials where it matters.<small>This is an early concept, not a product guarantee. Final designs, materials and prices are still being explored. Individual sensitivities vary.</small></div>`;
-    body += `<div class="options">${q.options.map((v,i)=>option(v,q.key,q.icons[i])).join('')}</div>`;
-    if (q.key === 'finish') {
-      body += `<section class="priority-panel" aria-labelledby="priority-title"><span class="eyebrow">ONE MORE THING</span><h2 id="priority-title">What wins you over most?</h2><p>When buying earrings, what matters most to you? <strong>Pick one.</strong></p><div class="priority-options" role="group" aria-labelledby="priority-title">${[['Comfort','Feels comfortable to wear'],['Design','A style I love'],['Price','Fits my budget'],['Durability','Holds up to regular wear'],['Verified materials','Knowing what touches my ears']].map(([v,desc])=>`<button data-key="priority" data-value="${v}" class="${answer.priority===v?'selected':''}" aria-pressed="${answer.priority===v}"><span><b>${v}</b><small>${desc}</small></span><span class="priority-check" aria-hidden="true">${answer.priority===v?'✓':''}</span></button>`).join('')}</div></section>`;
-    }
-  }
-  app.innerHTML = `<section class="survey fade-in"><div class="progress-info"><span>YOUR LITTLE EARRING EDIT</span><span>${String(step+1).padStart(2,'0')} / ${String(questions.length).padStart(2,'0')}</span></div><div class="progress" aria-label="Step ${step+1} of ${questions.length}">${questions.map((_,i)=>`<i class="${i<=step?'done':''}"></i>`).join('')}</div><div class="question-heading"><div><span class="eyebrow">${q.tag}</span><h1 tabindex="-1" id="question-title">${q.title}</h1><p>${q.desc}</p></div><span class="question-flower" aria-hidden="true">✳</span></div>${body}<p class="error" role="alert" id="error"></p><div class="question-footer"><button class="back" id="back">← ${step===0?'Back to the beginning':'Back'}</button><button class="primary" id="next">${q.key==='review'?'Send my edit':q.key==='rant'&&!answer.rant?'Skip & review':'Keep going'} <span>${q.key==='review'?'♡':'→'}</span></button></div></section>`;
-  document.querySelectorAll('[data-round]').forEach(button=>button.onclick=()=>{duelRound=Number(button.dataset.round);render();});
-  document.querySelectorAll('[data-duel]').forEach(button=>button.onclick=()=>{answer.duels[duels[duelRound].id]=button.dataset.duel;render();document.querySelector(`[data-duel="${button.dataset.duel}"]`)?.focus({preventScroll:true});});
-  document.querySelector('#next-round')?.addEventListener('click',()=>{
-    if(!answer.duels[duels[duelRound].id]){document.querySelector('#error').textContent='Pick a pair or choose a tie first.';return;}
-    duelRound++;render();
-  });
-  document.querySelector('#budget-slider')?.addEventListener('input',e=>{
-    answer.budget=budgets[Number(e.target.value)];
-    e.target.setAttribute('aria-valuetext',answer.budget);
-    document.querySelector('#price-reveal').textContent=answer.budget;
-    document.querySelector('#price-caption').textContent='Noted. This helps us plan, not set a final price.';
-    document.querySelector('.price-ticket').classList.add('revealed');
-    document.querySelectorAll('[data-key="budget"]').forEach(b=>{const on=b.dataset.value===answer.budget;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on));});
-  });
-  document.querySelectorAll('[data-key]').forEach(button => button.onclick = () => {
-    answer[button.dataset.key] = button.dataset.value;
-    const oldFocus = button.dataset.value;
-    render();
-    [...document.querySelectorAll('[data-value]')].find(b=>b.dataset.value===oldFocus)?.focus({preventScroll:true});
-  });
-  document.querySelectorAll('[data-style]').forEach(button => button.onclick = () => {
-    const value = button.dataset.style;
-    if (answer.styles.includes(value)) answer.styles = answer.styles.filter(v=>v!==value);
-    else if (answer.styles.length < 3) answer.styles.push(value);
-    else { document.querySelector('#error').textContent = 'Three favourites already! Unpick one to make room for another.'; return; }
-    render();
-    [...document.querySelectorAll('[data-style]')].find(b=>b.dataset.style===value)?.focus({preventScroll:true});
-  });
-  document.querySelector('#rant')?.addEventListener('input', e => {
-    answer.rant = e.target.value;
-    document.querySelector('#char-count').textContent = `${answer.rant.length} / 2,000`;
-    document.querySelector('#next').firstChild.textContent = answer.rant ? 'Review my edit ' : 'Skip & review ';
-  });
-  document.querySelector('#publish-rant')?.addEventListener('change',e=>{answer.publishRant=e.target.checked;});
-  if(q.key==='rant'){
-    loadCommunityRants();
-    document.querySelector('#refresh-wall').onclick=loadCommunityRants;
-  }
-  document.querySelector('#back').onclick = () => { if(busy)return; step--; step<0?home():render(); window.scrollTo(0,0); };
-  document.querySelector('#next').onclick = async () => {
-    if (busy) return;
-    const error = document.querySelector('#error');
-    if (q.key==='duels' && duels.some(r=>!answer.duels[r.id])) {
-      duelRound=duels.findIndex(r=>!answer.duels[r.id]);render();document.querySelector('#error').textContent='One more pairing needs your vote. A tie is welcome too.';return;
-    }
-    if (!['rant','review','duels'].includes(q.key) && (!answer[q.key] || (q.key==='styles'&&!answer.styles.length) || (q.key==='finish'&&!answer.priority))) {
-      error.textContent = q.key==='finish'?'Pick a finish and your top priority to continue.':q.key==='styles'?'Pick at least one style that catches your eye.':q.key==='budget'?'Move the slider or tap a budget, including “Not sure yet”.':'Pick an answer to keep going.';
-      return;
-    }
-    if (q.key==='review') {
-      busy=true;
-      const next = document.querySelector('#next');
-      next.disabled=true; next.textContent='Sending your edit…';
-      try {
-        const response = await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/submit', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(answer)});
-        const result = await response.json();
-        if(!response.ok || !result.saved) throw new Error(result.error || 'Your response could not be saved. Please try again.');
-        success();
-      } catch(e) { error.textContent = e.message==='Failed to fetch'?'We couldn’t connect. Your answers are still here — try sending again.':e.message; next.disabled=false; next.innerHTML='Try sending again <span>♡</span>'; }
-      finally {busy=false;}
-    } else {
-      step++; render(); window.scrollTo(0,0); document.querySelector('#question-title').focus({preventScroll:true});
-    }
-  };
-}
-
-async function loadCommunityRants(){
-  const wall=document.querySelector('#community-rants');
-  const refresh=document.querySelector('#refresh-wall');
-  if(!wall)return;
-  refresh.disabled=true;
-  wall.textContent='Loading the rant wall…';
-  try{
-    const response=await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/rants');
-    if(!response.ok)throw new Error();
-    const stories=await response.json();
-    if(!wall.isConnected)return;
-    wall.innerHTML=stories.length?stories.map(s=>`<article class="public-rant"><span aria-hidden="true">“</span><p>${esc(s.rant)}</p><small>Anonymous earring girl</small></article>`).join(''):'<p class="wall-empty">The wall is waiting for its first story. Want to be the first? Write your rant and choose to share it above.</p>';
-  }catch{if(wall.isConnected)wall.textContent='The wall couldn’t load right now. You can still write your story, or try refreshing.';}
-  finally{if(refresh.isConnected)refresh.disabled=false;}
-}
-
-function success() {
-  const scores=Object.fromEntries(styles.map(([label])=>[label,answer.styles.includes(label)?2:0]));
-  Object.values(answer.duels).filter(v=>v!=='Tie').forEach(v=>{scores[v]++;});
-  const winner=answer.styles.slice().sort((a,b)=>scores[b]-scores[a])[0];
-  const index=Math.max(0,styles.findIndex(s=>s[0]===winner));
-  const personalities=['The everyday icon','The soft-hearted romantic','The scene stealer','The desi daydreamer','The playful original','The timeless one'];
-  const comfort=['Often','Sometimes'].includes(answer.irritation)?'You love a pretty pair, but your ears deserve a say too. Your comfort feedback is part of this edit.':answer.frequency==='Every day'?'Repeat-wear energy, excellent taste. Your everyday favourites are helping shape our starting line-up.':'You know what catches your eye. Your picks are helping us find the designs worth exploring.';
-  const closing=answer.interest==='Very interested'?'You’re ready for a first look. Your enthusiasm is noted — this survey doesn’t sign you up for updates.':answer.interest==='Maybe, show me samples'?'A “show me first” girl. Fair. Your vote says the designs and details need to earn their place.':'Thanks for keeping it honest. Your perspective matters just as much as a yes.';
-  app.innerHTML = `<section class="success fade-in"><div class="success-icon">✳</div><span class="eyebrow">YOUR EDIT IS SAVED</span><h1>Your earring energy?<br><em>${personalities[index]}.</em></h1><p>${comfort}</p><div class="result-card"><div class="result-art">${jewellery(index)}</div><div><span class="eyebrow">YOUR PERSONAL STYLE EDIT</span><b>${esc(answer.styles.join(' + '))}</b><small>${esc(answer.finish)} · ${esc(answer.priority)} comes first.</small><small>Your price comfort: ${esc(answer.budget)}</small></div></div><p>${closing}</p><p class="result-disclaimer">A playful style summary based on your picks. Illustrations are references, not an upcoming collection or an order.</p><p>No order placed. No inbox spam.<br>Just a tiny thank-you from one earring girl to another. ♡</p><a class="secondary" href="./">Back to the beginning ↗</a></section>`;
-  window.scrollTo(0,0);
-}
-
-const dialog = document.querySelector('#privacy-dialog');
-document.querySelector('#privacy').onclick = () => dialog.showModal();
-dialog.querySelectorAll('.close,.close-button').forEach(b=>b.onclick=()=>dialog.close());
-home();
+async function checkCollection(){const note=document.querySelector('#collection-status');try{const r=await fetch('https://the-earring-edit.shimmering-beetle-431.workers.dev/api/rants',{signal:AbortSignal.timeout(6000)});if(!r.ok)throw new Error();}catch{if(note?.isConnected){note.textContent='Response collection is temporarily paused. You can preview the survey, but please wait to submit until collection resumes.';note.classList.add('paused');}}}
